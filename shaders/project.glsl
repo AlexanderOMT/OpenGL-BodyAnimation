@@ -3,7 +3,9 @@
 precision highp float;
 uniform mat4 view;
 uniform mat4 proj;
-uniform float u_time; 
+
+uniform float iTime;
+float walking = -iTime;
 
 out vec2 vTexCoord;
 out vec3 vNormal  ;
@@ -54,7 +56,6 @@ uint sphere(in uint offset,in mat4 mvp,in uint nCols,in uint nRows, int matId){
 }
 
 // New geometric figure build
-// I was Helped by file '06_box.gsls'
 uint box(in uint offset,in mat4 mvp,in uint nCols,in uint nRows, int matId){
 
   uint nCells = nCols * nRows;
@@ -68,10 +69,10 @@ uint box(in uint offset,in mat4 mvp,in uint nCols,in uint nRows, int matId){
   
   uint indices[] = uint[](
     0u,1u,2u,2u,1u,3u,
-    6u,5u,6u,6u,5u,7u,
-    0u,6u,2u,2u,6u,6u,
+    4u,5u,6u,6u,5u,7u,
+    0u,4u,2u,2u,4u,6u,
     1u,5u,3u,3u,5u,7u,
-    0u,1u,6u,6u,1u,5u,
+    0u,1u,4u,4u,1u,5u,
     2u,3u,6u,6u,3u,7u
   );
 
@@ -89,9 +90,7 @@ uint box(in uint offset,in mat4 mvp,in uint nCols,in uint nRows, int matId){
 
 }
 
-uniform float iTime;
-
-// New model matrix transformation for other axis (y and z)
+// New models matrixes transformations
 mat4 rotx(float a){
   mat4 rotationMatrix = mat4(1.);
   rotationMatrix[1][1] = cos(a);
@@ -143,32 +142,18 @@ mat4 scale(float x, float y, float z){
   return modelMatrix;
 }
 
-// New
+// New transformations added to rotate around a point
 mat4 rotx_round_point(float a, vec3 vector){
     return translate(vector[0],vector[1],vector[2])*rotx(a)*translate(-vector[0],-vector[1],-vector[2]);
 }
 
-// New function
 mat4 roty_round_point(float a, vec3 vector){
     return translate(vector[0],vector[1],vector[2])*roty(a)*translate(-vector[0],-vector[1],-vector[2]);
 }
 
-// New function
 mat4 rotz_round_point(float a, vec3 vector){
     return translate(vector[0],vector[1],vector[2])*rotz(a)*translate(-vector[0],-vector[1],-vector[2]);
 }
-
-
-float walking = -iTime;
-
-// Lighting - Should be done
-
-// control animation by keys
-
-// Floor and texture - Maybe apply texture to body? 
-
-const int KEY_DOWN  = 40;
-//uniform sampler2D iChannel0; doesnt work
 
 uint walk(uint offset, mat4 vp){
 
@@ -203,22 +188,11 @@ uint walk(uint offset, mat4 vp){
   
   mat4 walkingModel = translate(0, 0, walking);
 
-  //SDL_Event event;
-
   mat4 leftRotationModel = rotx_round_point(moveLeftLeg, waistPoint);
   mat4 rightRotationModel = rotx_round_point(moveRightLeg, waistPoint);
   mat4 moveArm = roty_round_point(moveHand, neckPoint);
   mat4 rightFeetRotation = rotx_round_point(-moveRightLeg, waistPoint);
   mat4 leftFeetRotation = rotx_round_point(-moveLeftLeg, waistPoint);
-
-  //if (normalizedLeg >= 5.7){
-  // walkingModel = translate(0, 0, 0); 
-  // leftRotationModel = rotx_round_point(0, waistPoint);
-  // rightRotationModel = rotx_round_point(0, waistPoint);
-  // moveArm = roty_round_point(0, neckPoint);
-  // rightFeetRotation = rotx_round_point(0, waistPoint);
-  // leftFeetRotation = rotx_round_point(0, waistPoint);
-  //}
 
   uint torso = box(
     offset, 
@@ -337,7 +311,6 @@ uint floor(uint offset, mat4 vp){
 }
 
 
-
 void main(){
   gl_Position = vec4(0.f,0.f,0.f,1.f);
   mat4 vp = proj*view;
@@ -378,15 +351,15 @@ vec4 materialBody(){
 
 vec4 applyLight(){
   vec3 N             = normalize(vNormal);
-  vec3 L             = normalize(vec3(100));
-  vec4 lightColor    = vec4(0.8);
+  vec3 L             = normalize(vec3(1));
+  vec4 lightColor    = vec4(0.7); // Higher is brighter
   vec4 materialColorVector = materialBody();
 
   N *=  2.f*float(gl_FrontFacing)-1.f;
 
-  float dF  = max(dot(N,L),0.2);
+  float dF  = max(dot(N,L),0.2); // Lower is shadower
   vec3 D    = materialColorVector.xyz*lightColor.xyz*dF;
-  vec3 A    = materialColorVector.xyz*0.7f;
+  vec3 A    = materialColorVector.xyz;
 
   fColor = vec4(A+D,1.f);
 
@@ -411,7 +384,6 @@ void applyTexture(){
 void main(){
 
   applyLight();
-
   applyTexture();
   
 }
